@@ -1,6 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; 
 
 const Homepage = () => {
+  const navigate = useNavigate(); // init navigate function
+
+  const handleGetStarted = () => {
+    navigate('/dashboard'); 
+  };
+
   const containerStyle = {
     height: '80vh', 
     display: 'flex',
@@ -51,12 +58,15 @@ const Homepage = () => {
         <p style={{ marginBottom: '32px' }}>
           Upload the choreography and your dance and receive feedback in minutes
         </p>
-        <button style={{ 
-          padding: '8px 16px', 
-          backgroundColor: '#9ca3af', 
-          color: 'white',
-          borderRadius: '4px'
-        }}>
+        <button 
+          style={{ 
+            padding: '8px 16px', 
+            backgroundColor: '#9ca3af', 
+            color: 'white',
+            borderRadius: '4px'
+          }} 
+          onClick={handleGetStarted} // go to dashboard.jsx
+        >
           Get Started
         </button>
       </div>
