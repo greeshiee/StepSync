@@ -1,27 +1,14 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import Navbar from './Navbar';
 
 const Homepage = () => {
   const navigate = useNavigate();
 
   return (
     <div className="h-[80vh] flex flex-col overflow-hidden">
-      {/* Nav Bar */}
-      <nav className="flex justify-between p-4 border-b border-gray-200">
-        <div>
-          <span className="font-bold text-[20px]">StepSync</span>
-        </div>
-        <div>
-          <button className="px-4 py-2 border border-gray-300 rounded ml-2 hover:bg-gray-100 transition">
-            Sign In
-          </button>
-          <button className="px-4 py-2 border border-gray-300 rounded ml-2 hover:bg-gray-100 transition">
-            Create Account
-          </button>
-        </div>
-      </nav>
+      <Navbar />
 
-      {/* Content */}
       <div className="flex flex-col items-center pt-[350px] text-center">
         <h1 className="text-[36px] font-bold mb-4">
           Free personalized dance trainer

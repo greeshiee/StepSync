@@ -30,3 +30,8 @@ button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
+
+
+a {
+  @apply text-gray-800 no-underline;
+}
