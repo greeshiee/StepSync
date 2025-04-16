@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 const Dashboard = () => {
   const navigate = useNavigate();
   return (
-    <div className="flex flex-col items-center h-screen p-5 bg-gray-50">
+    <div className="flex flex-col items-center h-screen bg-gray-50">
       <Navbar />
 
       <h1 className="text-[36px] font-bold mt-12 w-3/4 text-left text-gray-800">
