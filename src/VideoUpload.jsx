@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Navbar from "./Navbar";
 
 const VideoUpload = () => {
   const [step, setStep] = useState(1);
@@ -23,9 +24,11 @@ const VideoUpload = () => {
 
   return (
     <div className="bg-white min-h-screen flex flex-col">
-      <header className="w-full h-[84px] border border-black flex items-center p-4">
-        <div className="w-[60px] h-[60px] bg-black rounded-full" />
-      </header>
+      <Navbar />
+
+      <div className="absolute left-8 top-[110px] text-slate-500 text-[32px] font-normal font-['Inter'] leading-tight">
+        {step} of 2
+      </div>
 
       <main className="flex-grow flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold font-['Inter'] mb-4">
@@ -36,9 +39,6 @@ const VideoUpload = () => {
             ? "This should be your own dance that you want feedback on. We will be generating feedback identifying the differences between the choreography and this dance."
             : "This should be the dance you are aiming to achieve. We will be providing feedback on how similar your dance is to this choreography."}
         </p>
-        <div className="text-center text-slate-500 text-[32px] font-normal font-['Inter'] leading-tight mb-8">
-          {step} of 2
-        </div>
 
         {!currentVideo ? (
           <div className="p-[30px] rounded-[20px] border-2 border-slate-500 flex flex-col items-center gap-[22px] max-w-md w-full">
@@ -90,9 +90,13 @@ const VideoUpload = () => {
             </label>
           </div>
         ) : (
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <video width="320" height="240" controls>
+          <div className="flex flex-col items-center gap-4 w-full max-w-xl">
+            <div className="relative w-full aspect-video">
+              <video
+                key={step}
+                className="w-full h-full object-contain"
+                controls
+              >
                 <source src={currentVideo} type="video/mp4" />
                 Your browser does not support the video tag.
               </video>
