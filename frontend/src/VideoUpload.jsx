@@ -7,16 +7,56 @@ const VideoUpload = () => {
     choreography: null,
     dance: null,
   });
+  const [videoPreviews, setVideoPreviews] = useState({
+    choreography: null,
+    dance: null,
+  });
 
   const handleFileChange = (type, event) => {
     const file = event.target.files[0];
     if (file) {
-      setVideos((prev) => ({ ...prev, [type]: URL.createObjectURL(file) }));
+      if (videoPreviews[type]) {
+        URL.revokeObjectURL(videoPreviews[type]);
+      }
+      const previewUrl = URL.createObjectURL(file);
+      setVideos((prev) => ({ ...prev, [type]: file }));
+      setVideoPreviews((prev) => ({ ...prev, [type]: previewUrl }));
     }
   };
 
   const handleUploadNewVideo = (type) => {
+    if (videoPreviews[type]) {
+      URL.revokeObjectURL(videoPreviews[type]);
+    }
     setVideos((prev) => ({ ...prev, [type]: null }));
+    setVideoPreviews((prev) => ({ ...prev, [type]: null }));
+  };
+
+  const handleGenerateFeedback = async () => {
+    if (!videos.choreography || !videos.dance) {
+      alert("Please upload both videos.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("choreography", videos.choreography);
+    formData.append("dance", videos.dance);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/feedback", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get feedback");
+      }
+
+      const data = await response.json();
+      alert("Feedback: " + data.feedback); //change once we create a results page
+    } catch (error) {
+      alert("Error: " + error.message);
+    }
   };
 
   const currentVideo = step === 1 ? videos.choreography : videos.dance;
@@ -97,7 +137,14 @@ const VideoUpload = () => {
                 className="w-full h-full object-contain"
                 controls
               >
-                <source src={currentVideo} type="video/mp4" />
+                <source
+                  src={
+                    isSecondStep
+                      ? videoPreviews.dance
+                      : videoPreviews.choreography
+                  }
+                  type="video/mp4"
+                />
                 Your browser does not support the video tag.
               </video>
 
@@ -126,7 +173,7 @@ const VideoUpload = () => {
 
             {isSecondStep && videos.dance && (
               <button
-                onClick={() => alert("Generating feedback...")}
+                onClick={handleGenerateFeedback}
                 className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300"
               >
                 Generate Feedback
