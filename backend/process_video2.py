@@ -4,6 +4,9 @@ import time
 import numpy as np
 import logging
 import sys
+import tempfile
+
+logger = logging.getLogger(__name__)
 
 # Add site-packages path if needed
 sys.path.append(r'C:\Users\hmarwah2\pose_estimation\ildoonet-tf-pose-estimation\venv\lib\site-packages')
@@ -15,12 +18,12 @@ from tf_pose.networks import get_graph_path, model_wh
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 # Setup logging
-logger = logging.getLogger('OpenPose-Batch-Processor')
-logger.setLevel(logging.DEBUG)
-ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
-ch.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
-logger.addHandler(ch)
+# logger = logging.getLogger('OpenPose-Batch-Processor')
+# logger.setLevel(logging.DEBUG)
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# ch.setFormatter(logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s'))
+# logger.addHandler(ch)
 
 # Parameters
 input_folder = 'unzipped_videos/Stepsync'
@@ -29,46 +32,55 @@ model = 'mobilenet_thin'
 resize = '432x368'
 resize_out_ratio = 4.0
 
-def process_video(video_path, output_path, e, w, h):
-    cap = cv2.VideoCapture(video_path)
-
+def process_video(input_path, output_path=None, e=None, w=432, h=368, resize_out_ratio=4.0):
+    """Process a video file with pose estimation"""
+    if output_path is None:
+        output_path = input_path.replace('.mp4', '_processed.mp4')
+    
+    if e is None:
+        e = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
+        
+    # Create a temporary directory to store the output
+    temp_dir = tempfile.mkdtemp()
+    output_path = os.path.join(temp_dir, "processed_" + input_file.filename)
+    
+    # Save the uploaded file temporarily
+    temp_input_path = os.path.join(temp_dir, input_file.filename)
+    input_file.save(temp_input_path)
+    
+    # Initialize OpenPose estimator (you'll need to set this up)
+    e = TfPoseEstimator(get_graph_path(args.model), target_size=(w, h))
+    
+    # Process the video
+    cap = cv2.VideoCapture(temp_input_path)
+    
     if not cap.isOpened():
-        logger.error(f"❌ Cannot open video: {video_path}")
-        return
+        logger.error(f"❌ Cannot open video: {temp_input_path}")
+        return None
 
-    # Get FPS and resolution, use fallback if unavailable
     fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or 640
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) or 480
 
-    print(f"📏 Video settings — FPS: {fps}, Width: {width}, Height: {height}")
-
-    # Set up video writer
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
-
-    logger.info(f"🔄 Processing: {os.path.basename(video_path)}")
 
     while cap.isOpened():
         ret, frame = cap.read()
         if not ret:
             break
 
-        # OpenPose inference
         humans = e.inference(frame, resize_to_default=(w > 0 and h > 0), upsample_size=resize_out_ratio)
         frame = TfPoseEstimator.draw_humans(frame, humans, imgcopy=False)
-
         out.write(frame)
-
-        # Show frame in window
-        cv2.imshow("Pose Estimation", frame)
-        if cv2.waitKey(1) & 0xFF == 27:  # ESC to quit early
-            break
 
     cap.release()
     out.release()
-    cv2.destroyAllWindows()
-    logger.info(f"✅ Saved: {output_path}")
+    
+    # Clean up the input file
+    os.remove(temp_input_path)
+    
+    return output_path
 
 def main():
     print("🔍 Looking for videos in:", os.path.abspath(input_folder))
