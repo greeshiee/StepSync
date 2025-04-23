@@ -53,7 +53,10 @@ const VideoUpload = () => {
       }
 
       const data = await response.json();
-      alert("Feedback: " + data.feedback); //change once we create a results page
+
+      // Store results and redirect
+      localStorage.setItem("analysisResults", JSON.stringify(data));
+      window.location.href = `/results?choreo=${data.choreography_url}&dance=${data.dance_url}`;
     } catch (error) {
       alert("Error: " + error.message);
     }
