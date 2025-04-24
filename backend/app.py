@@ -12,14 +12,12 @@ app = Flask(__name__)
 CORS(app)
 
 # Constants
-MODEL_TYPE = 'mobilenet_thin'  # Consistent model across all processing
+MODEL_TYPE = 'mobilenet_thin'
 TARGET_SIZE = (432, 368)
 
-# Initialize pose estimator once at startup
 pose_estimator = TfPoseEstimator(get_graph_path(MODEL_TYPE), target_size=TARGET_SIZE)
 
 def extract_keypoints(humans, image_w, image_h):
-    """Consistent keypoint extraction across all files"""
     keypoints_list = []
     for human in humans:
         human_kps = {}
@@ -33,7 +31,6 @@ def extract_keypoints(humans, image_w, image_h):
     return keypoints_list
 
 def process_video_to_json(video_path):
-    """Process video and return keypoints data"""
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         raise ValueError(f"Cannot open video: {video_path}")
@@ -59,16 +56,14 @@ def process_video_to_json(video_path):
     return video_data
 
 def calculate_similarity(choreo_data, dance_data):
-    """Implement your actual similarity calculation here"""
-    # Placeholder - implement your comparison logic
+    # add similarity function calculation here
     min_frames = min(len(choreo_data), len(dance_data))
     if min_frames == 0:
         return 0
     
     matches = 0
     for i in range(min_frames):
-        # Compare keypoints between frames
-        # This should be your actual comparison algorithm
+        # add comparison function here
         if some_similarity_condition(choreo_data[i], dance_data[i]):
             matches += 1
     
@@ -83,28 +78,23 @@ def feedback():
         return jsonify({'error': 'Both videos are required'}), 400
 
     try:
-        # Create temp directory
         temp_dir = tempfile.mkdtemp()
         print(f"Created temp dir: {temp_dir}")
         
-        # Save uploaded files
         choreo_path = os.path.join(temp_dir, "choreo.mp4")
         dance_path = os.path.join(temp_dir, "dance.mp4")
         request.files['choreography'].save(choreo_path)
         request.files['dance'].save(dance_path)
         print("Saved video files temporarily")
 
-        # Process videos - ADD VERBOSE LOGGING
         print("Processing choreography video...")
         choreo_data = process_video_to_json(choreo_path)
         print("Processing dance video...")
         dance_data = process_video_to_json(dance_path)
         
-        # Calculate similarity
         similarity = calculate_similarity(choreo_data, dance_data)
         print(f"Calculated similarity: {similarity}")
 
-        # Generate response
         response = {
             'message': 'Analysis complete',
             'similarity': similarity,
@@ -132,9 +122,7 @@ def feedback():
 
 @app.route('/api/videos/<video_id>')
 def serve_video(video_id):
-    # In a real implementation, you would:
-    # 1. Look up the actual video file based on video_id
-    # 2. Return the video file with proper headers
+    # edit here later
     return jsonify({'error': 'Video serving not implemented'}), 501
 
 if __name__ == '__main__':
