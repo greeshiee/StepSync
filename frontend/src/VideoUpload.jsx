@@ -33,7 +33,7 @@ const VideoUpload = () => {
   };
 
   const handleGenerateFeedback = async () => {
-    // Right before the handleGenerateFeedback call:
+    //testing
     console.log("Submitting videos:", {
       choreography: videos.choreography,
       dance: videos.dance,
@@ -59,14 +59,13 @@ const VideoUpload = () => {
       }
 
       const data = await response.json();
-      console.log("API Response:", data); // Check the actual response structure
+      console.log("API Response:", data);
 
-      // Store results and redirect
       localStorage.setItem(
         "analysisResults",
         JSON.stringify({
           analysis: {
-            similarity_score: data.similarity / 100, // Convert to decimal if needed
+            similarity_score: data.similarity / 100,
             key_differences: [],
           },
           choreography_url: data.video_urls?.choreography || "",
