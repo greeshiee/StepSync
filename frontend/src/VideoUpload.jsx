@@ -37,27 +37,29 @@ const VideoUpload = () => {
       alert("Please upload both videos.");
       return;
     }
-
+  
     const formData = new FormData();
     formData.append("choreography", videos.choreography);
     formData.append("dance", videos.dance);
-
+  
     try {
       const response = await fetch("http://localhost:5000/api/feedback", {
         method: "POST",
         body: formData,
       });
-
+  
       if (!response.ok) {
-        throw new Error("Failed to get feedback");
+        const err = await response.json();
+        throw new Error(err.error || "Failed to get feedback");
       }
-
+  
       const data = await response.json();
-      alert("Feedback: " + data.feedback); //change once we create a results page
+      alert("Processing output:\n\n" + data.log);
     } catch (error) {
       alert("Error: " + error.message);
     }
   };
+  
 
   const currentVideo = step === 1 ? videos.choreography : videos.dance;
   const isSecondStep = step === 2;
