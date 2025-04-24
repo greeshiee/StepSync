@@ -1,44 +1,48 @@
-import React, { useEffect, useState } from "react";
-import Navbar from "./Navbar";
+import React, { useEffect, useState, useRef } from 'react';
 
-const Progress = () => {
-  const [log, setLog] = useState("");
-  const [done, setDone] = useState(false);
+const StreamBox = ({ videoName }) => {
+  const [logs, setLogs] = useState([]);
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    const eventSource = new EventSource("http://localhost:5000/api/feedback-stream");
+    const eventSource = new EventSource(`http://localhost:5000/api/stream/${videoName}`);
 
     eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      if (data.done) {
-        setDone(true);
-        eventSource.close();
-      } else {
-        setLog((prev) => prev + data.message + "\n");
-      }
+      setLogs((prev) => [...prev, event.data]);
     };
 
-    eventSource.onerror = () => {
+    eventSource.onerror = (err) => {
+      console.error('Stream error:', err);
       eventSource.close();
-      setDone(true);
     };
 
-    return () => eventSource.close();
-  }, []);
+    return () => {
+      eventSource.close();
+    };
+  }, [videoName]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
-      <Navbar />
-      <div className="p-6 max-w-2xl mx-auto">
-        <h1 className="text-xl font-bold mb-4">Generating Feedback...</h1>
-        <div className="whitespace-pre-wrap text-sm bg-gray-100 p-4 rounded-md h-[400px] overflow-y-auto border border-gray-300">
-          {log || "Awaiting feedback stream..."}
-        </div>
-        {done && (
-          <div className="mt-4 text-green-600 font-semibold">
-            Feedback complete!
-          </div>
-        )}
+    <div className="bg-black text-green-400 p-4 rounded-lg shadow-lg h-96 overflow-y-auto font-mono text-sm">
+      <h2 className="text-lg font-bold mb-2 text-white">{videoName}</h2>
+      {logs.map((line, idx) => (
+        <div key={idx}>{line}</div>
+      ))}
+      <div ref={bottomRef} />
+    </div>
+  );
+};
+
+const Progress = () => {
+  return (
+    <div className="p-6 space-y-4">
+      <h1 className="text-2xl font-semibold text-center">Processing Progress</h1>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StreamBox videoName="choreo.mp4" />
+        <StreamBox videoName="dance.mp4" />
       </div>
     </div>
   );

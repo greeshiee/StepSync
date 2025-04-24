@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import Navbar from "./Navbar";
+import { useNavigate } from "react-router-dom";
 
 const VideoUpload = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [videos, setVideos] = useState({
     choreography: null,
@@ -54,7 +56,7 @@ const VideoUpload = () => {
       }
   
       const data = await response.json();
-      alert("Processing output:\n\n" + data.log);
+      navigate("/progress");
     } catch (error) {
       alert("Error: " + error.message);
     }
