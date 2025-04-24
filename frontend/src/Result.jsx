@@ -7,12 +7,17 @@ const ResultsPage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get results from localStorage or API
     const savedResults = localStorage.getItem("analysisResults");
     if (savedResults) {
-      setResults(JSON.parse(savedResults));
-      setLoading(false);
+      try {
+        const parsed = JSON.parse(savedResults);
+        console.log("Loaded results:", parsed); // Check what was saved
+        setResults(parsed);
+      } catch (e) {
+        console.error("Error parsing results:", e);
+      }
     }
+    setLoading(false);
   }, []);
 
   if (loading) return <div>Loading...</div>;

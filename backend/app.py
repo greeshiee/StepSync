@@ -1,106 +1,141 @@
-import sys
-from tf_pose.estimator import TfPoseEstimator
-
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import os
 import tempfile
 import uuid
-from process_video2 import process_video
-from code_json_file import process_video_to_json, extract_keypoints
+import json
 import cv2
-from tf_pose.networks import get_graph_path, model_wh
+from tf_pose.estimator import TfPoseEstimator
+from tf_pose.networks import get_graph_path
 
 app = Flask(__name__)
 CORS(app)
 
-# Initialize pose estimator once
-model_type = 'mobilenet_thin'
-w, h = model_wh('432x368')
-pose_estimator = TfPoseEstimator(get_graph_path(model_type), target_size=(w, h))
+# Constants
+MODEL_TYPE = 'mobilenet_thin'  # Consistent model across all processing
+TARGET_SIZE = (432, 368)
 
-def analyze_videos(choreo_path, dance_path):
-    """Analyze both videos and return comparison results"""
-    # Process videos to get pose data
-    choreo_data = process_video_to_analysis(choreo_path)
-    dance_data = process_video_to_analysis(dance_path)
-    
-    # Here you would add your comparison logic
-    similarity_score = calculate_similarity(choreo_data, dance_data)
-    
-    return {
-        'similarity_score': similarity_score,
-        'key_differences': find_key_differences(choreo_data, dance_data)
-    }
+# Initialize pose estimator once at startup
+pose_estimator = TfPoseEstimator(get_graph_path(MODEL_TYPE), target_size=TARGET_SIZE)
 
-def process_video_to_analysis(video_path):
-    """Wrapper to process video and return analysis data"""
-    # Create temp json path
-    temp_dir = tempfile.mkdtemp()
-    json_path = os.path.join(temp_dir, "keypoints.json")
-    
-    # Use your existing function
-    process_video_to_json(video_path, json_path, pose_estimator, w, h)
-    
-    # Load and return the data
-    with open(json_path, 'r') as f:
-        return json.load(f)
+def extract_keypoints(humans, image_w, image_h):
+    """Consistent keypoint extraction across all files"""
+    keypoints_list = []
+    for human in humans:
+        human_kps = {}
+        for part_idx, part in human.body_parts.items():
+            human_kps[str(part_idx)] = {
+                'x': round(part.x * image_w, 2),
+                'y': round(part.y * image_h, 2),
+                'confidence': round(part.score, 3)
+            }
+        keypoints_list.append(human_kps)
+    return keypoints_list
 
-def calculate_similarity(data1, data2):
-    """Placeholder for your similarity calculation"""
-    # Implement your actual comparison logic here
-    return 0.85  # dummy value
+def process_video_to_json(video_path):
+    """Process video and return keypoints data"""
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise ValueError(f"Cannot open video: {video_path}")
 
-def find_key_differences(data1, data2):
-    """Placeholder for difference detection"""
-    # Implement your actual difference detection here
-    return []  # dummy value
+    video_data = []
+    frame_num = 0
+
+    while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        humans = pose_estimator.inference(frame, resize_to_default=True, upsample_size=4.0)
+        keypoints = extract_keypoints(humans, frame.shape[1], frame.shape[0])
+
+        video_data.append({
+            'frame': frame_num,
+            'keypoints': keypoints
+        })
+        frame_num += 1
+
+    cap.release()
+    return video_data
+
+def calculate_similarity(choreo_data, dance_data):
+    """Implement your actual similarity calculation here"""
+    # Placeholder - implement your comparison logic
+    min_frames = min(len(choreo_data), len(dance_data))
+    if min_frames == 0:
+        return 0
+    
+    matches = 0
+    for i in range(min_frames):
+        # Compare keypoints between frames
+        # This should be your actual comparison algorithm
+        if some_similarity_condition(choreo_data[i], dance_data[i]):
+            matches += 1
+    
+    return matches / min_frames
 
 @app.route('/api/feedback', methods=['POST'])
 def feedback():
-    if 'choreography' not in request.files or 'dance' not in request.files:
-        return jsonify({'error': 'Both videos are required'}), 400
+    print("\n\n--- NEW REQUEST RECEIVED ---")
     
+    if 'choreography' not in request.files or 'dance' not in request.files:
+        print("Error: Missing files!")
+        return jsonify({'error': 'Both videos are required'}), 400
+
     try:
-        # Create temp directory for processing
+        # Create temp directory
         temp_dir = tempfile.mkdtemp()
+        print(f"Created temp dir: {temp_dir}")
         
         # Save uploaded files
         choreo_path = os.path.join(temp_dir, "choreo.mp4")
         dance_path = os.path.join(temp_dir, "dance.mp4")
         request.files['choreography'].save(choreo_path)
         request.files['dance'].save(dance_path)
+        print("Saved video files temporarily")
+
+        # Process videos - ADD VERBOSE LOGGING
+        print("Processing choreography video...")
+        choreo_data = process_video_to_json(choreo_path)
+        print("Processing dance video...")
+        dance_data = process_video_to_json(dance_path)
         
-        # Process videos with pose estimation
-        processed_choreo = process_video(choreo_path)
-        processed_dance = process_video(dance_path)
-        
-        # Analyze the results
-        analysis = analyze_videos(choreo_path, dance_path)
-        
+        # Calculate similarity
+        similarity = calculate_similarity(choreo_data, dance_data)
+        print(f"Calculated similarity: {similarity}")
+
         # Generate response
-        return jsonify({
+        response = {
             'message': 'Analysis complete',
-            'analysis': analysis,
+            'similarity': similarity,
             'video_urls': {
                 'choreography': f'/api/videos/choreo_{uuid.uuid4()}',
                 'dance': f'/api/videos/dance_{uuid.uuid4()}'
             }
-        })
+        }
+        print("Returning response:", response)
+        
+        return jsonify(response)
         
     except Exception as e:
+        print(f"Error processing videos: {str(e)}")
         return jsonify({'error': str(e)}), 500
     finally:
-        # Clean up temp files
+        # Clean up
+        print("Cleaning up temp files...")
         for f in [choreo_path, dance_path]:
-            if os.path.exists(f):
-                os.remove(f)
+            try:
+                if f and os.path.exists(f):
+                    os.remove(f)
+            except Exception as e:
+                print(f"Error removing {f}: {e}")
 
-@app.route('/api/videos/<video_id>', methods=['GET'])
-def get_video(video_id):
-    # In a real implementation, you'd look up the actual file
-    # For demo purposes, we'll return a placeholder
-    return jsonify({'message': 'Video would be served here'}), 501
+@app.route('/api/videos/<video_id>')
+def serve_video(video_id):
+    # In a real implementation, you would:
+    # 1. Look up the actual video file based on video_id
+    # 2. Return the video file with proper headers
+    return jsonify({'error': 'Video serving not implemented'}), 501
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

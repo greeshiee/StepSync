@@ -33,32 +33,51 @@ const VideoUpload = () => {
   };
 
   const handleGenerateFeedback = async () => {
+    // Right before the handleGenerateFeedback call:
+    console.log("Submitting videos:", {
+      choreography: videos.choreography,
+      dance: videos.dance,
+    });
     if (!videos.choreography || !videos.dance) {
       alert("Please upload both videos.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("choreography", videos.choreography);
-    formData.append("dance", videos.dance);
-
     try {
+      const formData = new FormData();
+      formData.append("choreography", videos.choreography);
+      formData.append("dance", videos.dance);
+
       const response = await fetch("http://localhost:5000/api/feedback", {
         method: "POST",
         body: formData,
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get feedback");
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to get feedback");
       }
 
       const data = await response.json();
+      console.log("API Response:", data); // Check the actual response structure
 
       // Store results and redirect
-      localStorage.setItem("analysisResults", JSON.stringify(data));
-      window.location.href = `/results?choreo=${data.choreography_url}&dance=${data.dance_url}`;
+      localStorage.setItem(
+        "analysisResults",
+        JSON.stringify({
+          analysis: {
+            similarity_score: data.similarity / 100, // Convert to decimal if needed
+            key_differences: [],
+          },
+          choreography_url: data.video_urls?.choreography || "",
+          dance_url: data.video_urls?.dance || "",
+        })
+      );
+
+      window.location.href = "/results";
     } catch (error) {
-      alert("Error: " + error.message);
+      console.error("Error:", error);
+      alert(error.message);
     }
   };
 
