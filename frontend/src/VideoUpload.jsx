@@ -13,6 +13,8 @@ const VideoUpload = () => {
     choreography: null,
     dance: null,
   });
+  const [is3D, setIs3D] = useState(false); 
+  const [show2DWarning, setShow2DWarning] = useState(false); 
 
   const handleFileChange = (type, event) => {
     const file = event.target.files[0];
@@ -39,29 +41,37 @@ const VideoUpload = () => {
       alert("Please upload both videos.");
       return;
     }
-  
+
+    if (!is3D) {
+      setShow2DWarning(true); // Show the popup if 2D mode is on
+      return;
+    }
+
     const formData = new FormData();
     formData.append("choreography", videos.choreography);
     formData.append("dance", videos.dance);
-  
+
     try {
       const response = await fetch("http://localhost:5000/api/feedback", {
         method: "POST",
         body: formData,
       });
-  
+
       if (!response.ok) {
         const err = await response.json();
         throw new Error(err.error || "Failed to get feedback");
       }
-  
+
       const data = await response.json();
       navigate("/progress");
     } catch (error) {
       alert("Error: " + error.message);
     }
   };
-  
+
+  const close2DWarning = () => {
+    setShow2DWarning(false);
+  };
 
   const currentVideo = step === 1 ? videos.choreography : videos.dance;
   const isSecondStep = step === 2;
@@ -176,12 +186,34 @@ const VideoUpload = () => {
             </div>
 
             {isSecondStep && videos.dance && (
-              <button
-                onClick={handleGenerateFeedback}
-                className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300"
-              >
-                Generate Feedback
-              </button>
+              <>
+                <button
+                  onClick={handleGenerateFeedback}
+                  className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300"
+                >
+                  Generate Feedback
+                </button>
+
+                {/* Toggle Switch */}
+                <div className="mt-6 flex flex-col items-center gap-0">
+                  <span className="text-base text-gray-800 font-semibold">Analysis Mode</span>
+                  <div className="mt-6 flex items-center gap-3">
+                    <span className="text-sm text-gray-700 font-medium">2D</span>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="sr-only peer"
+                        checked={is3D}
+                        onChange={() => setIs3D(!is3D)} 
+                      />
+                      <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
+                    </label>
+                    <span className="text-sm text-gray-700 font-medium">3D</span>
+                  </div>
+                </div>
+
+                {/* add 2d functionality here */}
+              </>
             )}
           </div>
         )}
@@ -242,6 +274,22 @@ const VideoUpload = () => {
           </svg>
         </button>
       </footer>
+
+      {/* 2D Analysis Not Available Popup */}
+      {show2DWarning && (
+        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded-md shadow-lg">
+            <h2 className="text-lg font-semibold mb-4">Warning</h2>
+            <p className="mb-4">2D analysis is not yet available.</p>
+            <button
+              onClick={close2DWarning}
+              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-all duration-300"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
