@@ -1,7 +1,0 @@
-# Root .gitignore
-frontend/node_modules/
-backend/venv/
-*.pyc
-__pycache__/
-.env
-.DS_Store
