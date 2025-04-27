@@ -25,10 +25,7 @@ TEST_MODE_FILES = {
 }
 
 
-
-
 app = Flask(__name__)
-
 CORS(app,
      origins=["http://localhost:5173"],
      allow_headers=["Content-Type", "Range", "Authorization"],
@@ -36,8 +33,6 @@ CORS(app,
      supports_credentials=True,
      expose_headers=["Range"]
 )
-
-
 
 
 MODEL_TYPE = 'mobilenet_thin'
@@ -138,7 +133,7 @@ def calculate_similarity(choreo_data, dance_data):
 
 
 video_cache = {}
-@app.route('/api/feedback', methods=['GET', 'POST'])  # Add GET method
+@app.route('/api/feedback', methods=['GET', 'POST'])
 def feedback():
     if request.method == 'GET':
         return jsonify({
@@ -163,7 +158,6 @@ def feedback():
     test_mode = 'test' in request.args
 
     if test_mode:
-        # testing
         print("TESTING - USING PREPROCESSED FILES")
         try:
             with open(TEST_MODE_FILES['choreography']['json']) as f:
@@ -200,7 +194,11 @@ def feedback():
                 }
             })
         except Exception as e:
+            import traceback
+            print("Error:", e)
+            traceback.print_exc()
             return jsonify({'error': f'Test mode failed: {str(e)}'}), 500
+
 
     
     if 'choreography' not in request.files or 'dance' not in request.files:
@@ -246,7 +244,6 @@ def feedback():
                 'dance': dance_data
             }
         })
-
     except Exception as e:
         print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
