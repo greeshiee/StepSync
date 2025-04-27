@@ -61,17 +61,7 @@ const VideoUpload = () => {
       const data = await response.json();
       console.log("API Response:", data);
 
-      localStorage.setItem(
-        "analysisResults",
-        JSON.stringify({
-          analysis: {
-            similarity_score: data.similarity / 100,
-            key_differences: [],
-          },
-          choreography_url: data.video_urls?.choreography || "",
-          dance_url: data.video_urls?.dance || "",
-        })
-      );
+      localStorage.setItem("analysisResults", JSON.stringify(data));
 
       window.location.href = "/results";
     } catch (error) {
