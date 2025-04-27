@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
 
 const Results = () => {
   const [results, setResults] = useState(null);

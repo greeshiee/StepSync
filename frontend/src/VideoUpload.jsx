@@ -33,40 +33,43 @@ const VideoUpload = () => {
   };
 
   const handleGenerateFeedback = async () => {
-    //testing
-    console.log("Submitting videos:", {
-      choreography: videos.choreography,
-      dance: videos.dance,
-    });
-    if (!videos.choreography || !videos.dance) {
-      alert("Please upload both videos.");
-      return;
-    }
-
     try {
-      const formData = new FormData();
-      formData.append("choreography", videos.choreography);
-      formData.append("dance", videos.dance);
+      console.log("Starting test request...");
 
-      const response = await fetch("http://localhost:5000/api/feedback", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "http://localhost:5000/api/feedback?test=true",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          body: JSON.stringify({ test: true }),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to get feedback");
+        const errorText = await response.text();
+        throw new Error(
+          `Server responded with ${response.status}: ${errorText}`
+        );
       }
 
       const data = await response.json();
-      console.log("API Response:", data);
+      console.log("Received data:", data);
 
-      localStorage.setItem("analysisResults", JSON.stringify(data));
+      localStorage.setItem(
+        "analysisResults",
+        JSON.stringify({
+          ...data.test_data,
+          analysis_data: {},
+        })
+      );
 
       window.location.href = "/results";
     } catch (error) {
-      console.error("Error:", error);
-      alert(error.message);
+      console.error("Full error details:", error);
+      alert(`Error: ${error.message}`);
     }
   };
 
