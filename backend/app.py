@@ -128,7 +128,6 @@ def angle_between(a, b, c):
 def compute_angles_for_data(video_data):
     angle_data = []
     for frame in video_data:
-        frame_angles = {}
         people = frame.get("keypoints", [])
         
         if not people:
@@ -158,25 +157,52 @@ def calculate_similarity(choreo_data, dance_data):
     angles_choreo = compute_angles_for_data(choreo_data)
     angles_dance = compute_angles_for_data(dance_data)
     
+    total_sim, count, frame_similarities = calculate_frame_similarities(angles_choreo, angles_dance)
+    
+    best_frames, worst_frames = get_best_worst_frames(frame_similarities)
+    
+    overall_similarity = (total_sim / count) if count > 0 else 0.0
+    
+    return overall_similarity, best_frames, worst_frames
+
+def calculate_frame_similarities(angles_choreo, angles_dance):
     total_sim = 0.0
     count = 0
+    frame_similarities = []
     min_frames = min(len(angles_choreo), len(angles_dance))
     
     for i in range(min_frames):
-        a1 = angles_choreo[i]["angles"]
-        a2 = angles_dance[i]["angles"]
+        frame_sim, frame_count = process_frame(
+            angles_choreo[i]["angles"], 
+            angles_dance[i]["angles"]
+        )
         
-        for joint in a1:
-            if joint in a2 and a1[joint] is not None and a2[joint] is not None:
-                angle_diff = abs(a1[joint] - a2[joint])
-                joint_sim = 1.0 - (angle_diff / 180.0)
-                total_sim += joint_sim
-                count += 1
+        total_sim += frame_sim
+        count += frame_count
+        frame_similarities.append({
+            "frame": i,
+            "similarity": frame_sim / frame_count if frame_count > 0 else 0.0
+        })
     
-    if count == 0:
-        return 0.0
+    return total_sim, count, frame_similarities
+
+def process_frame(a1, a2):
+    frame_sim = 0.0
+    frame_count = 0
     
-    return (total_sim / count)
+    for joint in a1:
+        if joint in a2 and a1[joint] is not None and a2[joint] is not None:
+            angle_diff = abs(a1[joint] - a2[joint])
+            joint_sim = 1.0 - (angle_diff / 180.0)
+            frame_sim += joint_sim
+            frame_count += 1
+    
+    return frame_sim, frame_count
+
+def get_best_worst_frames(frame_similarities, top_n=5):
+    sorted_frames = sorted(frame_similarities, key=lambda x: x["similarity"], reverse=True)
+    return sorted_frames[:top_n], sorted_frames[-top_n:]
+
 
 
 
@@ -222,7 +248,7 @@ def feedback():
             shutil.copyfile(TEST_MODE_FILES['choreography']['video'], choreo_processed_path)
             shutil.copyfile(TEST_MODE_FILES['dance']['video'], dance_processed_path)
 
-            similarity = calculate_similarity(choreo_data, dance_data)
+            similarity, best_frames, worst_frames = calculate_similarity(choreo_data, dance_data)
 
             choreo_id = str(uuid.uuid4())
             dance_id = str(uuid.uuid4())
@@ -230,8 +256,12 @@ def feedback():
             video_cache[dance_id] = dance_processed_path
 
             return jsonify({
-                'message': 'TEST MODE - Analysis complete',
+                'message': 'Analysis complete',
                 'similarity': similarity,
+                'frame_analysis': {
+                    'best_frames': best_frames,
+                    'worst_frames': worst_frames
+                },
                 'video_urls': {
                     'choreography': f'/api/videos/{choreo_id}',
                     'dance': f'/api/videos/{dance_id}'

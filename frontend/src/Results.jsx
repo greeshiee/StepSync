@@ -15,9 +15,6 @@ const Results = () => {
           parsed?.similarity !== undefined
         ) {
           setResults(parsed);
-        } else {
-          console.error("Invalid data structure in localStorage");
-          localStorage.removeItem("analysisResults");
         }
       } catch (e) {
         console.error("Failed to parse analysisResults", e);
@@ -55,6 +52,42 @@ const Results = () => {
               type="video/mp4"
             />
           </video>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">Top 5 Matching Frames</h2>
+          <ul className="space-y-2">
+            {results.frame_analysis?.best_frames?.map((frame, index) => (
+              <li key={index} className="bg-white p-3 rounded-md">
+                <div className="flex justify-between items-center">
+                  <span>Frame {frame.frame}</span>
+                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                    {Math.round(frame.similarity * 100)}%
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="bg-gray-100 p-4 rounded-lg">
+          <h2 className="text-xl font-semibold mb-4">
+            Top 5 Mismatched Frames
+          </h2>
+          <ul className="space-y-2">
+            {results.frame_analysis?.worst_frames?.map((frame, index) => (
+              <li key={index} className="bg-white p-3 rounded-md">
+                <div className="flex justify-between items-center">
+                  <span>Frame {frame.frame}</span>
+                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                    {Math.round(frame.similarity * 100)}%
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
 
