@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import tempfile
 import uuid
+import numpy as np
 import json
 import cv2
 from tf_pose.estimator import TfPoseEstimator
@@ -101,34 +102,81 @@ def process_video_to_json(video_path, output_video_path=None):
     return video_data
 
 
-def calculate_similarity(choreo_data, dance_data):
-    min_frames = min(len(choreo_data), len(dance_data))
-    if min_frames == 0:
-        return 0
-    
-    matches = 0
-    for i in range(min_frames):
-        choreo_frame = choreo_data[i]['keypoints'][0] if choreo_data[i]['keypoints'] else {}
-        dance_frame = dance_data[i]['keypoints'][0] if dance_data[i]['keypoints'] else {}
-        
-        total_distance = 0
-        compared_points = 0
-        
-        for k in set(choreo_frame.keys()).intersection(dance_frame.keys()):
-            choreo_kp = choreo_frame[k]
-            dance_kp = dance_frame[k]
-            
-            if choreo_kp['confidence'] > 0.3 and dance_kp['confidence'] > 0.3:
-                dx = choreo_kp['x'] - dance_kp['x']
-                dy = choreo_kp['y'] - dance_kp['y']
-                total_distance += (dx**2 + dy**2)**0.5
-                compared_points += 1
-                
-        if compared_points > 0 and (total_distance / compared_points) < 25:
-            matches += 1
-    
-    return matches / min_frames if min_frames > 0 else 0
 
+ANGLE_DEFS = {
+    "left_elbow": (5, 7, 9),
+    "right_elbow": (6, 8, 10),
+    "left_knee": (11, 13, 15),
+    "right_knee": (12, 14, 16),
+}
+
+def get_kp(pt_dict, idx):
+    kp = pt_dict.get(str(idx), {})
+    return kp.get("x"), kp.get("y"), kp.get("confidence", 0)
+
+def angle_between(a, b, c):
+    ba = np.array(a) - np.array(b)
+    bc = np.array(c) - np.array(b)
+    
+    if np.linalg.norm(ba) == 0 or np.linalg.norm(bc) == 0:
+        return None
+    
+    cos_theta = np.dot(ba, bc) / (np.linalg.norm(ba) * np.linalg.norm(bc))
+    cos_theta = np.clip(cos_theta, -1.0, 1.0)
+    return np.degrees(np.arccos(cos_theta))
+
+def compute_angles_for_data(video_data):
+    angle_data = []
+    for frame in video_data:
+        frame_angles = {}
+        people = frame.get("keypoints", [])
+        
+        if not people:
+            continue
+            
+        kps = people[0] if people else {}
+        
+        angles = {}
+        for joint, (a, b, c) in ANGLE_DEFS.items():
+            ax, ay, a_conf = get_kp(kps, a)
+            bx, by, b_conf = get_kp(kps, b)
+            cx, cy, c_conf = get_kp(kps, c)
+            
+            if min(a_conf, b_conf, c_conf) < 0.3:
+                angles[joint] = None
+            else:
+                angles[joint] = angle_between((ax, ay), (bx, by), (cx, cy))
+        
+        angle_data.append({
+            "frame": frame["frame"],
+            "angles": angles
+        })
+    
+    return angle_data
+
+def calculate_similarity(choreo_data, dance_data):
+    angles_choreo = compute_angles_for_data(choreo_data)
+    angles_dance = compute_angles_for_data(dance_data)
+    
+    total_sim = 0.0
+    count = 0
+    min_frames = min(len(angles_choreo), len(angles_dance))
+    
+    for i in range(min_frames):
+        a1 = angles_choreo[i]["angles"]
+        a2 = angles_dance[i]["angles"]
+        
+        for joint in a1:
+            if joint in a2 and a1[joint] is not None and a2[joint] is not None:
+                angle_diff = abs(a1[joint] - a2[joint])
+                joint_sim = 1.0 - (angle_diff / 180.0)
+                total_sim += joint_sim
+                count += 1
+    
+    if count == 0:
+        return 0.0
+    
+    return (total_sim / count)
 
 
 
