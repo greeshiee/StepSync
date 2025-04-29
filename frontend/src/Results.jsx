@@ -61,12 +61,22 @@ const Results = () => {
           <ul className="space-y-2">
             {results.frame_analysis?.best_frames?.map((frame, index) => (
               <li key={index} className="bg-white p-3 rounded-md">
-                <div className="flex justify-between items-center">
-                  <span>Frame {frame.frame}</span>
-                  <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
-                    {Math.round(frame.similarity * 100)}%
-                  </span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Frame {frame.frame}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {frame.timestamp}
+                    </span>
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                      {Math.round(frame.similarity * 100)}%
+                    </span>
+                  </div>
                 </div>
+                {frame.feedback && (
+                  <p className="text-sm text-gray-700 mt-1">
+                    {frame.feedback.replace(/\*\*/g, "")}
+                  </p>
+                )}
               </li>
             ))}
           </ul>
@@ -79,12 +89,22 @@ const Results = () => {
           <ul className="space-y-2">
             {results.frame_analysis?.worst_frames?.map((frame, index) => (
               <li key={index} className="bg-white p-3 rounded-md">
-                <div className="flex justify-between items-center">
-                  <span>Frame {frame.frame}</span>
-                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
-                    {Math.round(frame.similarity * 100)}%
-                  </span>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="font-medium">Frame {frame.frame}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {frame.timestamp}
+                    </span>
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded">
+                      {Math.round(frame.similarity * 100)}%
+                    </span>
+                  </div>
                 </div>
+                {frame.feedback && (
+                  <p className="text-sm text-gray-700 mt-1">
+                    {frame.feedback.replace(/\*\*/g, "")}
+                  </p>
+                )}
               </li>
             ))}
           </ul>

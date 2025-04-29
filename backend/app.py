@@ -5,6 +5,7 @@ import uuid
 import numpy as np
 import json
 import cv2
+import math
 from tf_pose.estimator import TfPoseEstimator
 from tf_pose.networks import get_graph_path
 
@@ -153,17 +154,172 @@ def compute_angles_for_data(video_data):
     
     return angle_data
 
-def calculate_similarity(choreo_data, dance_data):
-    angles_choreo = compute_angles_for_data(choreo_data)
-    angles_dance = compute_angles_for_data(dance_data)
+
+def format_timestamp(frame, fps=30.0):
+    """
+    Convert a frame index to a mm:ss.SS timestamp string given fps.
+    """
+    seconds = frame / fps
+    mins = int(seconds // 60)
+    secs = seconds - mins * 60
+    return f"{mins:02d}:{secs:05.2f}"
+
+def rule_based_feedback(frame, ang_ref, ang_usr, improvement=True):
+    """
+    For each joint, compute delta = user_angle - ref_angle.
+    • If improvement: pick the joint with the largest |delta| and suggest how to correct it.
+    • If praise: pick the joint with the smallest |delta| and praise it.
+    """
+    deltas = {
+        joint: ang_usr[joint] - ang_ref[joint]
+        for joint in ang_ref
+        if joint in ang_usr and ang_usr[joint] is not None and ang_ref[joint] is not None
+    }
+    if not deltas:
+        return None
+
+    if improvement:
+        joint, delta = max(deltas.items(), key=lambda kv: abs(kv[1]))
+        direction = "bend more" if delta < 0 else "bend less"
+        return (
+            f"Your **{joint.replace('_', ' ')}** is off by {abs(delta):.1f}° — "
+            f"try to {direction} toward {ang_ref[joint]:.0f}°."
+        )
+    else:
+        joint, delta = min(deltas.items(), key=lambda kv: abs(kv[1]))
+        return (
+            f"Your **{joint.replace('_', ' ')}** is spot-on (within {abs(delta):.1f}°) — great job!"
+        )
+
+def get_spread_frames(scores, frames_data, n=5, best=True, fps=30):
+    """
+    Get top n frames that are spread out to avoid consecutive frames.
+    best=True → lowest diffs (your best).
+    best=False → highest diffs (need improvement).
+    Returns list of frame dicts with feedback and timestamps.
+    """
+    # Sort frames by similarity (best or worst first)
+    sorted_frames = sorted(
+        frames_data,
+        key=lambda x: x['similarity'],
+        reverse=not best
+    )
     
-    total_sim, count, frame_similarities = calculate_frame_similarities(angles_choreo, angles_dance)
+    selected_frames = []
+    last_frame_num = -10  # Initialize with a value that won't conflict
     
-    best_frames, worst_frames = get_best_worst_frames(frame_similarities)
+    for frame in sorted_frames:
+        frame_num = frame['frame']
+        # Only select frames at least 5 frames apart
+        if abs(frame_num - last_frame_num) > 5:  
+            selected_frames.append(frame)
+            last_frame_num = frame_num
+            if len(selected_frames) >= n:
+                break
     
-    overall_similarity = (total_sim / count) if count > 0 else 0.0
+    # If we didn't get enough frames, add the next best ones regardless of spacing
+    if len(selected_frames) < n:
+        for frame in sorted_frames:
+            if frame not in selected_frames:
+                selected_frames.append(frame)
+                if len(selected_frames) >= n:
+                    break
     
-    return overall_similarity, best_frames, worst_frames
+    return selected_frames
+
+def calculate_similarity(choreo_data, dance_data, fps=30):
+    # Convert both datasets to consistent format
+    def prepare_angles(data):
+        if isinstance(data, list) and len(data) > 0 and 'keypoints' in data[0]:
+            # This is processed video data (from process_video_to_json)
+            return compute_angles_for_data(data)
+        elif isinstance(data, list) and len(data) > 0 and 'angles' in data[0]:
+            # This is test data (already has angles)
+            return data
+        return []
+    
+    angles_choreo = prepare_angles(choreo_data)
+    angles_dance = prepare_angles(dance_data)
+    
+    # Convert to dict format for easier processing
+    angles_ref = {frame['frame']: frame['angles'] for frame in angles_choreo if 'angles' in frame}
+    angles_usr = {frame['frame']: frame['angles'] for frame in angles_dance if 'angles' in frame}
+    
+    # Get shared frames
+    shared = set(angles_ref.keys()) & set(angles_usr.keys())
+    
+    # Calculate similarity for all shared frames
+    sims = {}
+    for frame in shared:
+        similarity = compute_angle_similarity(angles_ref[frame], angles_usr[frame])
+        if similarity != math.inf:
+            sims[frame] = similarity
+    
+    if not sims:
+        return 0.0, [], []
+    
+    # Get top frames
+    worst = get_top_n(sims, n=5, best=False)
+    best = get_top_n(sims, n=5, best=True)
+    
+    # Prepare results
+    enhanced_best_frames = []
+    for frame, _ in best:
+        feedback = rule_based_feedback(
+            frame, 
+            angles_ref.get(frame, {}), 
+            angles_usr.get(frame, {}),
+            improvement=False
+        )
+        enhanced_best_frames.append({
+            'frame': frame,
+            'similarity': 1 - (sims[frame] / 180),  # Convert to similarity score (0-1)
+            'timestamp': format_timestamp(frame, fps),
+            'feedback': feedback or "No significant joint angles detected"
+        })
+    
+    enhanced_worst_frames = []
+    for frame, _ in worst:
+        feedback = rule_based_feedback(
+            frame, 
+            angles_ref.get(frame, {}), 
+            angles_usr.get(frame, {}),
+            improvement=True
+        )
+        enhanced_worst_frames.append({
+            'frame': frame,
+            'similarity': 1 - (sims[frame] / 180),  # Convert to similarity score (0-1)
+            'timestamp': format_timestamp(frame, fps),
+            'feedback': feedback or "No significant joint angles detected"
+        })
+    
+    # Calculate overall similarity (average of all frame similarities)
+    overall_similarity = sum(1 - (s / 180) for s in sims.values()) / len(sims) if sims else 0.0
+    
+    return overall_similarity, enhanced_best_frames, enhanced_worst_frames
+
+def compute_angle_similarity(a1, a2):
+    """
+    Average absolute difference across all common, non-None angles.
+    Returns math.inf if no valid comparisons.
+    """
+    keys = [k for k in a1 if k in a2 and a1[k] is not None and a2[k] is not None]
+    if not keys:
+        return math.inf
+    total = sum(abs(a1[k] - a2[k]) for k in keys)
+    return total / len(keys)
+
+def get_top_n(sim_map, n=5, best=True):
+    """
+    Return the top-n frames by similarity.
+    best=True → lowest diffs (your best).
+    best=False → highest diffs (need improvement).
+    """
+    return sorted(
+        sim_map.items(),
+        key=lambda kv: kv[1],
+        reverse=not best
+    )[:n]
 
 def calculate_frame_similarities(angles_choreo, angles_dance):
     total_sim = 0.0
@@ -239,6 +395,12 @@ def feedback():
             with open(TEST_MODE_FILES['dance']['json']) as f:
                 dance_data = json.load(f)
 
+            # Ensure test data has the right structure
+            if isinstance(choreo_data, list) and len(choreo_data) > 0 and 'angles' not in choreo_data[0]:
+                choreo_data = compute_angles_for_data(choreo_data)
+            if isinstance(dance_data, list) and len(dance_data) > 0 and 'angles' not in dance_data[0]:
+                dance_data = compute_angles_for_data(dance_data)
+
             temp_dir = tempfile.mkdtemp()
             processed_dir = os.path.join(temp_dir, "processed")
             os.makedirs(processed_dir, exist_ok=True)
@@ -248,7 +410,9 @@ def feedback():
             shutil.copyfile(TEST_MODE_FILES['choreography']['video'], choreo_processed_path)
             shutil.copyfile(TEST_MODE_FILES['dance']['video'], dance_processed_path)
 
-            similarity, best_frames, worst_frames = calculate_similarity(choreo_data, dance_data)
+            fps = 30
+            similarity, best_frames, worst_frames = calculate_similarity(choreo_data, dance_data, fps)
+            # ... rest of the test code ...
 
             choreo_id = str(uuid.uuid4())
             dance_id = str(uuid.uuid4())
