@@ -17,11 +17,12 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TEST_MODE_FILES = {
     "choreography": {
         "json": os.path.abspath("tempfiles/OgBhangra_keypoints.json"),
-        "video": os.path.abspath("tempfiles/processed_JeevBhangra.mp4")
+        "video": os.path.abspath("tempfiles/processed_OgBhangra.mp4")
     },
     "dance": {
         "json": os.path.abspath("tempfiles/Jeev_keypoints.json"),
-        "video": os.path.abspath("tempfiles/processed_OgBhangra.mp4")
+        "video": os.path.abspath("tempfiles/processed_JeevBhangra.mp4")
+        
     }
 }
 
