@@ -7,6 +7,7 @@ import uuid
 import time
 import threading  
 import re
+from flask import send_from_directory
 
 app = Flask(__name__)
 CORS(app)
@@ -184,6 +185,36 @@ def stream_logs(video_name):
     if video_name not in ['choreo.mp4', 'dance.mp4']:
         return jsonify({'error': 'Invalid video name.'}), 400
     return Response(generate_vis_output(video_name), mimetype='text/event-stream')
+
+
+def convert_to_browser_friendly(input_path, output_path):
+    if not os.path.exists(output_path):
+        print(f"Converting {input_path} to {output_path}")
+        subprocess.run([
+            "ffmpeg",
+            "-i", input_path,
+            "-c:v", "libx264",
+            "-c:a", "aac",
+            "-strict", "experimental",
+            output_path
+        ], check=True)
+    else:
+        print(f"{output_path} already exists, skipping conversion.")
+
+@app.route('/static/<folder>/<filename>')
+def serve_video(folder, filename):
+    input_path = f"C:/HoT/demo/output/{folder}/{filename}"
+    output_path = f"C:/HoT/demo/output/{folder}/web_{filename}"
+
+    if not os.path.exists(input_path):
+        return f"Original video not found at {input_path}", 404
+
+    try:
+        convert_to_browser_friendly(input_path, output_path)
+    except subprocess.CalledProcessError as e:
+        return f"FFmpeg failed: {str(e)}", 500
+
+    return send_from_directory(f'C:/HoT/demo/output/{folder}', f'web_{filename}')
 
 if __name__ == '__main__':
     app.run(debug=True)
