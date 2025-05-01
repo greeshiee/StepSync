@@ -73,7 +73,44 @@ const Progress = () => {
     if (progress1 === 3 && progress2 === 3) {
       fetch('http://localhost:5000/api/feedback-result')
         .then((res) => res.json())
-        .then((data) => setFeedbackResult(data));
+        .then((data) => {
+          // fill metrics obj
+          const parsedMetrics = {};
+          const rawOutput = data.raw_output || [];
+          let inExtractedFeatures = false;
+
+          rawOutput.forEach((line) => {
+            // check for feats.
+            if (line.includes('--- Extracted Features ---')) {
+              inExtractedFeatures = true;
+              return;
+            }
+
+            if (inExtractedFeatures) {
+              if (line.startsWith('Naive Euclidean Similarity Score:')) {
+                const scoreText = line.split(':')[1].split('(')[0].trim();
+                const score = parseFloat(scoreText);
+                parsedMetrics.naive_euclidean_similarity_score = score;
+              } else if (line.startsWith('Weighted Feature-based Score:')) {
+                const scoreText = line.split(':')[1].split('(')[0].trim();
+                const score = parseFloat(scoreText);
+                parsedMetrics.weighted_feature_based_score = score;
+              } else if (line.includes(':')) {
+                const [key, value] = line.split(':');
+                if (key && value) {
+                  const cleanedKey = key.trim().toLowerCase();
+                  const cleanedValue = parseFloat(value.trim());
+                  if (!isNaN(cleanedValue)) {
+                    parsedMetrics[cleanedKey] = cleanedValue;
+                  }
+                }
+              }
+            }
+          });
+          
+          data.metrics = parsedMetrics;
+          setFeedbackResult(data);
+        });
     }
   }, [progress1, progress2]);
 
@@ -85,11 +122,26 @@ const Progress = () => {
         <StreamBox videoName="dance.mp4" setProgress1={setProgress1} setProgress2={setProgress2} />
       </div>
 
-        {feedbackResult && (
-         <div className="mt-6 p-4 bg-white rounded-lg shadow-lg text-black">
+      {feedbackResult && (
+        <div className="mt-6 p-4 bg-white rounded-lg shadow-lg text-black">
           <h2 className="text-xl font-semibold mb-2">Similarity Feedback</h2>
           <p>
-            Average Similarity Score: <strong>{feedbackResult.average_similarity}/100</strong>
+            Average Similarity Score:{' '}
+            <strong>
+              {feedbackResult.metrics.naive_euclidean_similarity_score
+                ? (feedbackResult.metrics.naive_euclidean_similarity_score * 100).toFixed(2)
+                : 'N/A'}
+              /100
+            </strong>
+          </p>
+          <p>
+            Weighted Feature-based Score:{' '}
+            <strong>
+              {feedbackResult.metrics.weighted_feature_based_score
+                ? (feedbackResult.metrics.weighted_feature_based_score * 100).toFixed(2)
+                : 'N/A'}
+              /100
+            </strong>
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
@@ -99,11 +151,11 @@ const Progress = () => {
               <ul className="space-y-1 text-sm list-disc list-inside">
                 {feedbackResult.top_frames.map((frame, index) => (
                   <li key={index}>
-                    Frame {frame.frame} — Score: {frame.score}/100
+                    Frame {frame.frame} — Score: {frame.score.toFixed(2)}/100
                   </li>
                 ))}
               </ul>
-           </div>
+            </div>
 
             {/* Bottom 10 */}
             <div>
@@ -111,15 +163,32 @@ const Progress = () => {
               <ul className="space-y-1 text-sm list-disc list-inside">
                 {feedbackResult.bottom_frames.map((frame, index) => (
                   <li key={index}>
-                    Frame {frame.frame} — Score: {frame.score}/100
+                    Frame {frame.frame} — Score: {frame.score.toFixed(2)}/100
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-       </div>
-    )}
 
+          {/* Display Extracted Features */}
+          <div className="mt-6">
+            <h2 className="text-xl font-semibold mb-2">Extracted Features</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              {Object.entries(feedbackResult.metrics)
+                .filter(
+                  ([key]) =>
+                    !['naive_euclidean_similarity_score', 'weighted_feature_based_score'].includes(key)
+                )
+                .map(([key, value]) => (
+                  <p key={key}>
+                    <strong>{key.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}:</strong>{' '}
+                    {value.toFixed(4)}
+                  </p>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

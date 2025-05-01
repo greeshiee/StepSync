@@ -17,7 +17,7 @@ VIDEO_DIR = r'C:\HoT\demo\video'
 VIS_SCRIPT_RELATIVE = 'demo/vis2.py'
 PYTHON_EXECUTABLE = r'C:\Users\zionr\anaconda3\envs\hot2\python.exe'  
 PROJECT_ROOT = r'C:\HoT'
-FEEDBACK_SCRIPT = r'C:\HoT\Feedback\compareDefNPZ.py'  
+FEEDBACK_SCRIPT = r'C:\HoT\Feedback\compareFeatExtrac.py'  
 
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -25,36 +25,41 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 progress_status = {"choreo.mp4": 0, "dance.mp4": 0}  
 progress_lock = threading.Lock()  
 
-def run_feedback_script():
+def run_feedback_script(frames_path, def_path, frame=10, top=10):
     process = subprocess.Popen(
-        [PYTHON_EXECUTABLE, 'Feedback/compareDefNPZ.py', '--frame', '10', '--top', '10'],
+        [
+            PYTHON_EXECUTABLE,
+            'Feedback/compareFeatExtrac.py',
+            frames_path,
+            def_path
+        ],
         cwd=PROJECT_ROOT,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        text=True
+        text=True,
     )
 
-    avg_similarity = None
+    metrics = {}
     top_frames = []
     bottom_frames = []
     output_lines = []
-    capture_top = capture_bottom = False
+
+    capture_top = False
+    capture_bottom = False
 
     for line in process.stdout:
         line = line.strip()
+        if not line:
+            continue  # skip empty lines
+
         output_lines.append(line)
 
-        # Capture average similarity
-        match = re.search(r'Average similarity score: ([\d.]+)/100', line)
-        if match:
-            avg_similarity = float(match.group(1))
-
-        # Toggle top/bottom capture flags
-        if "Top 10 Most Similar Frames" in line:
+        # Capture top and bottom frames
+        if line.startswith("Top 10 Frames (most similar):"):
             capture_top = True
             capture_bottom = False
             continue
-        elif "Top 10 Least Similar Frames" in line:
+        elif line.startswith("Bottom 10 Frames (least similar):"):
             capture_top = False
             capture_bottom = True
             continue
@@ -63,37 +68,51 @@ def run_feedback_script():
             capture_bottom = False
             continue
 
-        # Capture actual top/bottom frame lines
-        if capture_top:
-            frame_match = re.search(r'Frame (\d+): Similarity Score ([\d.]+)/100', line)
-            if frame_match:
-                top_frames.append({
-                    "frame": int(frame_match.group(1)),
-                    "score": float(frame_match.group(2))
-                })
+        
+        if ":" in line and not capture_top and not capture_bottom:
+            key, value = line.split(":", 1)
+            key = key.strip().lower().replace(" ", "_")
 
-        if capture_bottom:
-            frame_match = re.search(r'Frame (\d+): Similarity Score ([\d.]+)/100', line)
-            if frame_match:
-                bottom_frames.append({
-                    "frame": int(frame_match.group(1)),
-                    "score": float(frame_match.group(2))
-                })
+            # strip desc.
+            value = value.strip().split()[0]
+            try:
+                metrics[key] = float(value)
+            except ValueError:
+                pass  # skip if not a float
+
+        
+        if capture_top or capture_bottom:
+            parts = line.split(" - ")
+            if len(parts) == 2:
+                frame_part, score_part = parts
+                try:
+                    frame_num = int(frame_part.split()[1])
+                    score = float(score_part.split(":")[1].replace("/100", "").strip())
+                    frame_data = {"frame": frame_num, "score": score}
+                    if capture_top:
+                        top_frames.append(frame_data)
+                    elif capture_bottom:
+                        bottom_frames.append(frame_data)
+                except (IndexError, ValueError):
+                    continue  
 
     process.stdout.close()
     process.wait()
 
     return {
-        "average_similarity": avg_similarity,
+        "metrics": metrics,
         "top_frames": top_frames,
         "bottom_frames": bottom_frames,
-        "raw_output": output_lines
+        "raw_output": output_lines,
     }
-
 
 @app.route('/api/feedback-result', methods=['GET'])
 def feedback_result():
-    result = run_feedback_script()
+    result = run_feedback_script(
+            frames_path=r"C:\HoT\demo\output\dance\output_3D\output_keypoints_3d.npz",
+            def_path=r"C:\HoT\demo\output\choreo\output_3D\output_keypoints_3d.npz"
+            )
+    print("Feedback Result:", result)
     return jsonify(result)
 
 def update_progress_and_maybe_run(video_name, stage):  
@@ -101,7 +120,10 @@ def update_progress_and_maybe_run(video_name, stage):
         progress_status[video_name] = stage
         if all(v == 3 for v in progress_status.values()):
             print("Both videos done. Running feedback script.")
-            run_feedback_script()
+            run_feedback_script(
+            frames_path=r"C:\HoT\demo\output\dance\output_3D\output_keypoints_3d.npz",
+            def_path=r"C:\HoT\demo\output\choreo\output_3D\output_keypoints_3d.npz"
+            )
 
 # === Feedback Upload Route ===
 @app.route('/api/feedback', methods=['POST'])
