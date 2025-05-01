@@ -14,7 +14,7 @@ const VideoUpload = () => {
     dance: null,
   });
   const [is3D, setIs3D] = useState(false);
-  const [show2DWarning, setShow2DWarning] = useState(false);
+  // const [show2DWarning, setShow2DWarning] = useState(false);
 
   const handleFileChange = (type, event) => {
     const file = event.target.files[0];
@@ -40,8 +40,8 @@ const VideoUpload = () => {
     try {
       console.log("[Frontend] Starting upload...");
 
-      if (!is3D) {
-        setShow2DWarning(true); // Show the popup if 2D mode is on
+      if (!videos.choreography || !videos.dance) {
+        alert("Please upload both videos.");
         return;
       }
 
@@ -52,7 +52,9 @@ const VideoUpload = () => {
       console.log("[Frontend] Sending POST to /api/feedback");
       // change to http://localhost:5000/api/feedback when done testing
       const response = await fetch(
-        "http://localhost:5000/api/feedback?test=true",
+        is3D
+          ? "http://localhost:5000/api/feedback"
+          : "http://localhost:5000/api/feedback?test=true",
         {
           method: "POST",
           body: formData,
@@ -70,17 +72,21 @@ const VideoUpload = () => {
       const data = await response.json();
       console.log("[Frontend] Received JSON:", data);
 
-      localStorage.setItem("analysisResults", JSON.stringify(data));
-      window.location.href = "/results";
+      if (is3D) {
+        navigate("/progress");
+      } else {
+        localStorage.setItem("analysisResults", JSON.stringify(data));
+        window.location.href = "/results";
+      }
     } catch (error) {
       console.error("[Frontend] Fetch error:", error);
       alert(`Error: ${error.message}`);
     }
   };
 
-  const close2DWarning = () => {
-    setShow2DWarning(false);
-  };
+  // const close2DWarning = () => {
+  //   setShow2DWarning(false);
+  // };
 
   const currentVideo = step === 1 ? videos.choreography : videos.dance;
   const isSecondStep = step === 2;
@@ -88,11 +94,9 @@ const VideoUpload = () => {
   return (
     <div className="bg-white min-h-screen flex flex-col">
       <Navbar />
-
       <div className="absolute left-8 top-[110px] text-slate-500 text-[32px] font-normal font-['Inter'] leading-tight">
         {step} of 2
       </div>
-
       <main className="flex-grow flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl font-bold font-['Inter'] mb-4">
           {isSecondStep ? "Upload your Dance" : "Upload a Choreography"}
@@ -233,7 +237,6 @@ const VideoUpload = () => {
           </div>
         )}
       </main>
-
       <footer className="flex justify-between p-4">
         <button
           onClick={() => setStep(1)}
@@ -289,9 +292,8 @@ const VideoUpload = () => {
           </svg>
         </button>
       </footer>
-
-      {/* 2D Analysis Not Available Popup */}
-      {show2DWarning && (
+      2D Analysis Not Available Popup
+      {/* {show2DWarning && (
         <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center">
           <div className="bg-white p-6 rounded-md shadow-lg">
             <h2 className="text-lg font-semibold mb-4">Warning</h2>
@@ -304,7 +306,7 @@ const VideoUpload = () => {
             </button>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   );
 };
