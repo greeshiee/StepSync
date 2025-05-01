@@ -33,29 +33,38 @@ const VideoUpload = () => {
   };
 
   const handleGenerateFeedback = async () => {
-    if (!videos.choreography || !videos.dance) {
-      alert("Please upload both videos.");
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("choreography", videos.choreography);
-    formData.append("dance", videos.dance);
-
     try {
-      const response = await fetch("http://localhost:5000/api/feedback", {
-        method: "POST",
-        body: formData,
-      });
+      console.log("[Frontend] Starting upload...");
+
+      const formData = new FormData();
+      formData.append("choreography", videos.choreography);
+      formData.append("dance", videos.dance);
+
+      console.log("[Frontend] Sending POST to /api/feedback");
+      // change to http://localhost:5000/api/feedback when done testing
+      const response = await fetch(
+        "http://localhost:5000/api/feedback?test=true",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      console.log("[Frontend] Received response status:", response.status);
 
       if (!response.ok) {
-        throw new Error("Failed to get feedback");
+        console.error("[Frontend] Server error:", await response.text());
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      alert("Feedback: " + data.feedback); //change once we create a results page
+      console.log("[Frontend] Received JSON:", data);
+
+      localStorage.setItem("analysisResults", JSON.stringify(data));
+      window.location.href = "/results";
     } catch (error) {
-      alert("Error: " + error.message);
+      console.error("[Frontend] Fetch error:", error);
+      alert(`Error: ${error.message}`);
     }
   };
 
