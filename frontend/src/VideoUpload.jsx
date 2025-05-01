@@ -13,8 +13,8 @@ const VideoUpload = () => {
     choreography: null,
     dance: null,
   });
-  const [is3D, setIs3D] = useState(false); 
-  const [show2DWarning, setShow2DWarning] = useState(false); 
+  const [is3D, setIs3D] = useState(false);
+  const [show2DWarning, setShow2DWarning] = useState(false);
 
   const handleFileChange = (type, event) => {
     const file = event.target.files[0];
@@ -37,35 +37,44 @@ const VideoUpload = () => {
   };
 
   const handleGenerateFeedback = async () => {
-    if (!videos.choreography || !videos.dance) {
-      alert("Please upload both videos.");
-      return;
-    }
-
-    if (!is3D) {
-      setShow2DWarning(true); // Show the popup if 2D mode is on
-      return;
-    }
-
-    const formData = new FormData();
-    formData.append("choreography", videos.choreography);
-    formData.append("dance", videos.dance);
-
     try {
-      const response = await fetch("http://localhost:5000/api/feedback", {
-        method: "POST",
-        body: formData,
-      });
+      console.log("[Frontend] Starting upload...");
+
+      if (!is3D) {
+        setShow2DWarning(true); // Show the popup if 2D mode is on
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("choreography", videos.choreography);
+      formData.append("dance", videos.dance);
+
+      console.log("[Frontend] Sending POST to /api/feedback");
+      // change to http://localhost:5000/api/feedback when done testing
+      const response = await fetch(
+        "http://localhost:5000/api/feedback?test=true",
+        {
+          method: "POST",
+          body: formData,
+        }
+      );
+
+      console.log("[Frontend] Received response status:", response.status);
 
       if (!response.ok) {
         const err = await response.json();
-        throw new Error(err.error || "Failed to get feedback");
+        console.error("[Frontend] Server error:", await response.text());
+        throw new Error(err.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
-      navigate("/progress");
+      console.log("[Frontend] Received JSON:", data);
+
+      localStorage.setItem("analysisResults", JSON.stringify(data));
+      window.location.href = "/results";
     } catch (error) {
-      alert("Error: " + error.message);
+      console.error("[Frontend] Fetch error:", error);
+      alert(`Error: ${error.message}`);
     }
   };
 
@@ -196,19 +205,25 @@ const VideoUpload = () => {
 
                 {/* Toggle Switch */}
                 <div className="mt-6 flex flex-col items-center gap-0">
-                  <span className="text-base text-gray-800 font-semibold">Analysis Mode</span>
+                  <span className="text-base text-gray-800 font-semibold">
+                    Analysis Mode
+                  </span>
                   <div className="mt-6 flex items-center gap-3">
-                    <span className="text-sm text-gray-700 font-medium">2D</span>
+                    <span className="text-sm text-gray-700 font-medium">
+                      2D
+                    </span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         className="sr-only peer"
                         checked={is3D}
-                        onChange={() => setIs3D(!is3D)} 
+                        onChange={() => setIs3D(!is3D)}
                       />
                       <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
                     </label>
-                    <span className="text-sm text-gray-700 font-medium">3D</span>
+                    <span className="text-sm text-gray-700 font-medium">
+                      3D
+                    </span>
                   </div>
                 </div>
 

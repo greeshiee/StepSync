@@ -39,7 +39,14 @@ def extract_keypoints(humans, image_w, image_h):
     return keypoints_list
 
 # Process a single video
+<<<<<<< HEAD
 def process_video_to_json(video_path, output_json_path, e, w, h):
+=======
+def process_video_to_json(video_path, output_json_path, e=None, w=432, h=368):
+    if e is None:
+        e = TfPoseEstimator(get_graph_path('mobilenet_thin'), target_size=(w, h))
+        
+>>>>>>> backend
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         logger.error(f"❌ Cannot open video: {video_path}")
