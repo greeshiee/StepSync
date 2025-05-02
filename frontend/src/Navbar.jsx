@@ -1,29 +1,23 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
 
 const Navbar = () => {
   return (
-    <nav className="flex justify-between w-full p-4 border-b border-gray-200 bg-white shadow-md">
-      <Link
-        to="/"
-        className="flex flex-row items-center gap-4 font-bold text-[20px] text-gray-800 hover:text-blue-500 transition"
-      >
-        <img
-          src="/logo.png"
-          alt={"StepSync Logo"}
-          className="w-[50px] h-[50px] rounded-full"
-        />
-        StepSync
-      </Link>
-      <div>
-        <button className="px-4 py-2 border border-gray-300 rounded ml-2 hover:bg-gray-100 transition">
-          Sign In
-        </button>
-        <button className="px-4 py-2 border border-gray-300 rounded ml-2 hover:bg-gray-100 transition">
-          Create Account
-        </button>
+    <div className="w-[1512px] px-9 py-3.5 bg-black/60 outline outline-1 outline-offset-[-1px] outline-black fixed top-0 left-0 z-50 flex justify-between items-center">
+      <div className="w-96 h-14 flex items-center gap-2.5">
+        <div className="w-14 h-14 bg-black rounded-full" />
+        <div className="w-40 h-8 px-3.5 py-2.5 rounded-2xl outline outline-1 outline-offset-[-1px] outline-white flex justify-center items-center">
+          <span className="text-white text-2xl font-semibold font-['Inter']">StepSync</span>
+        </div>
       </div>
-    </nav>
+      <div className="flex items-center gap-5">
+        <div className="px-3.5 py-2.5 rounded-2xl outline outline-1 outline-offset-[-1px] outline-white flex justify-center items-center cursor-pointer">
+          <span className="text-white text-xl font-semibold font-['Inter']">Sign In</span>
+        </div>
+        <div className="px-3.5 py-2.5 rounded-2xl outline outline-1 outline-offset-[-1px] outline-white flex justify-center items-center cursor-pointer">
+          <span className="text-white text-xl font-semibold font-['Inter']">Create Account</span>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -1,14 +1,14 @@
-import { useState } from 'react';
-import './index.css';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Homepage from './Homepage';
+import VideoUpload from './VideoUpload';
 
 function App() {
-
   return (
-    <div>
-      <Homepage />
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Homepage />} />
+        <Route path="/upload" element={<VideoUpload />} />
+      </Routes>
+    </Router>
   );
 }
-
-export default App;
