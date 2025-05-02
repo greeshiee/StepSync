@@ -1,5 +1,5 @@
 import sys
-sys.path.append("J:/vscode/AIS/StepSync/backend/tf-pose-estimation")
+sys.path.append("tf-pose-estimation")
 
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS

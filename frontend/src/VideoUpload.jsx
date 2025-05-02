@@ -14,7 +14,6 @@ const VideoUpload = () => {
     dance: null,
   });
   const [is3D, setIs3D] = useState(false);
-  // const [show2DWarning, setShow2DWarning] = useState(false);
 
   const handleFileChange = (type, event) => {
     const file = event.target.files[0];
@@ -50,7 +49,6 @@ const VideoUpload = () => {
       formData.append("dance", videos.dance);
 
       console.log("[Frontend] Sending POST to /api/feedback");
-      // change to http://localhost:5000/api/feedback when done testing
       const response = await fetch(
         is3D
           ? "http://localhost:5000/api/feedback"
@@ -83,10 +81,6 @@ const VideoUpload = () => {
       alert(`Error: ${error.message}`);
     }
   };
-
-  // const close2DWarning = () => {
-  //   setShow2DWarning(false);
-  // };
 
   const currentVideo = step === 1 ? videos.choreography : videos.dance;
   const isSecondStep = step === 2;
@@ -230,8 +224,6 @@ const VideoUpload = () => {
                     </span>
                   </div>
                 </div>
-
-                {/* add 2d functionality here */}
               </>
             )}
           </div>
@@ -292,20 +284,6 @@ const VideoUpload = () => {
           </svg>
         </button>
       </footer>
-      {/* {show2DWarning && (
-        <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex justify-center items-center">
-          <div className="bg-white p-6 rounded-md shadow-lg">
-            <h2 className="text-lg font-semibold mb-4">Warning</h2>
-            <p className="mb-4">2D analysis is not yet available.</p>
-            <button
-              onClick={close2DWarning}
-              className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-all duration-300"
-            >
-              OK
-            </button>
-          </div>
-        </div>
-      )} */}
     </div>
   );
 };
