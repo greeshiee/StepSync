@@ -86,16 +86,16 @@ const VideoUpload = () => {
   const isSecondStep = step === 2;
 
   return (
-    <div className="bg-white min-h-screen flex flex-col">
+    <div className="flex flex-col min-h-screen bg-[url('/background.png')] bg-cover bg-center bg-no-repeat">
       <Navbar />
       <div className="absolute left-8 top-[110px] text-slate-500 text-[32px] font-normal font-['Inter'] leading-tight">
         {step} of 2
       </div>
       <main className="flex-grow flex flex-col items-center justify-center p-4">
-        <h1 className="text-2xl font-bold font-['Inter'] mb-4">
+        <h1 className="text-5xl font-bold text-white mb-4 [text-shadow:_0px_4px_15px_rgb(0_0_0_/_0.25)]">
           {isSecondStep ? "Upload your Dance" : "Upload a Choreography"}
         </h1>
-        <p className="text-center text-slate-500 text-sm font-normal font-['Inter'] leading-tight max-w-md mb-8">
+        <p className="text-center text-white text-xl font-semibold leading-tight max-w-md mb-8 [text-shadow:_0px_4px_15px_rgb(0_0_0_/_0.25)]">
           {isSecondStep
             ? "This should be your own dance that you want feedback on. We will be generating feedback identifying the differences between the choreography and this dance."
             : "This should be the dance you are aiming to achieve. We will be providing feedback on how similar your dance is to this choreography."}
@@ -141,10 +141,10 @@ const VideoUpload = () => {
                   />
                 </svg>
               </div>
-              <div className="text-center text-black text-base font-semibold font-['Inter'] leading-tight tracking-tight">
+              <div className="text-center text-white text-base font-semibold font-['Inter'] leading-tight tracking-tight">
                 Drag and drop video files to upload
               </div>
-              <div className="text-center text-slate-500 text-sm font-normal font-['Inter'] leading-tight">
+              <div className="text-center text-white text-sm font-normal font-['Inter'] leading-tight">
                 For best results, video uploads should be at least 1080p in MP4
                 format.
               </div>
@@ -196,20 +196,18 @@ const VideoUpload = () => {
               <>
                 <button
                   onClick={handleGenerateFeedback}
-                  className="mt-4 px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all duration-300"
+                  className="mt-4 px-6 py-2 bg-black/80 text-white rounded-lg hover:bg-black/90 cursor-pointer transition-all duration-300"
                 >
                   Generate Feedback
                 </button>
 
                 {/* Toggle Switch */}
                 <div className="mt-6 flex flex-col items-center gap-0">
-                  <span className="text-base text-gray-800 font-semibold">
+                  <span className="text-base text-white font-semibold">
                     Analysis Mode
                   </span>
                   <div className="mt-6 flex items-center gap-3">
-                    <span className="text-sm text-gray-700 font-medium">
-                      2D
-                    </span>
+                    <span className="text-sm text-white font-medium">2D</span>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
@@ -219,9 +217,7 @@ const VideoUpload = () => {
                       />
                       <div className="w-14 h-7 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer dark:bg-gray-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-gray-600 peer-checked:bg-blue-500"></div>
                     </label>
-                    <span className="text-sm text-gray-700 font-medium">
-                      3D
-                    </span>
+                    <span className="text-sm text-white font-medium">3D</span>
                   </div>
                 </div>
               </>
