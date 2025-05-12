@@ -1,5 +1,3 @@
-// Function to seek to specific frame
-
 import React, { useEffect, useState, useRef } from 'react';
 
 const StreamBox = ({ videoName, setProgress1, setProgress2 }) => {
@@ -164,6 +162,8 @@ useEffect(() => {
 }, [progress1, progress2]);
 
 return (
+  <div className="w-screen min-h-screen bg-[url('/background.png')] bg-cover bg-center bg-no-repeat">
+  <div className="p-6 space-y-4">
   <div className="p-6 space-y-4">
     <h1 className="text-2xl font-semibold text-center">Processing Progress</h1>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -521,6 +521,8 @@ return (
         </div>
       </div>
     )}
+  </div>
+  </div>
   </div>
 );
 };
