@@ -1,3 +1,4 @@
 backend/tf-pose-estimation
 venv/
 __pycache__/
+temp_uploads/*
